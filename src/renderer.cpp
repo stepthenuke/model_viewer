@@ -30,12 +30,12 @@ GLFWwindow* Renderer::init_window(unsigned int screen_width, unsigned int screen
 }
 
 void Renderer::error_callback_(int, const char* error_str) {
-	throw( glfw_error(error_str) );
+	throw glfw_error(error_str);
 }
 
 void Renderer::framebuffer_size_callback_(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
-};
+}
 
 GLFWwindow* Renderer::get_window() {
 	return window_.get();

@@ -7,16 +7,11 @@
 #include "include/glad/glad.h"
 #include <GLFW/glfw3.h>
 
+#include "errors.h"
+
 namespace mvi {
 
-using error_callback_t 	   = void (int, const char*);
-using error_callback_t_ptr = void (*) (int, const char*);
-
-struct glfw_error : public std::runtime_error {
-	glfw_error(const char* str) : std::runtime_error(str) {}
-};
-
-class Renderer {
+class Renderer final {
 public:
 	Renderer(unsigned int screen_width, unsigned int screen_height);
 	void draw();
@@ -32,11 +27,10 @@ private:
 	static inline auto window_deleter_ = [](GLFWwindow*) { glfwTerminate(); };
 	using window_ptr = std::unique_ptr<GLFWwindow, decltype(window_deleter_)>;
 	window_ptr window_;
-	
-	static void error_callback_(int, const char* error_str);
-	
+
 	GLFWwindow* init_window(unsigned int screen_width, unsigned int screen_height);
 	
+	static void error_callback_(int, const char* error_str);	
 	static void framebuffer_size_callback_(GLFWwindow* window, int width, int height);
 };
 
