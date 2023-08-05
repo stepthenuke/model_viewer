@@ -59,6 +59,8 @@ GLuint compile_shader(const char *shader_source, GLenum shader_type) {
 }
 
 GLuint load_program(const char* vert_shader_path, const char* geom_shader_path, const char* frag_shader_path) {
+	int success = 0;
+	
 	const char* vert_shader_source = read_shader(vert_shader_path);
 	GLuint vert_shader_id = compile_shader(vert_shader_source, GL_VERTEX_SHADER);
 	if (!vert_shader_id) {
@@ -89,7 +91,6 @@ GLuint load_program(const char* vert_shader_path, const char* geom_shader_path, 
 	glAttachShader(shader_program_id, frag_shader_id);
 	glLinkProgram(shader_program_id);
 
-	int success;
 	glGetProgramiv(shader_program_id, GL_LINK_STATUS, &success);
 	if (!success) {
 		char info_log[1024];
@@ -100,17 +101,17 @@ GLuint load_program(const char* vert_shader_path, const char* geom_shader_path, 
 
 cleanup_frag:	
 	glDeleteShader(frag_shader_id);
-	free(frag_shader_source);
+	free((char*) frag_shader_source);
 
 cleanup_geom:
 	if (geom_shader_id) {
 		glDeleteShader(geom_shader_id);
-		free(geom_shader_source);
+		free((char*) geom_shader_source);
 	}
 
 cleanup_vert:
 	glDeleteShader(vert_shader_id);
-	free(vert_shader_source);
+	free((char*) vert_shader_source);
 	
 	if (success) {
 		return shader_program_id;

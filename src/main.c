@@ -34,7 +34,7 @@ int main(void)
 		goto cleanup_window;
 	}
 
-	GLuint shader_program = load_program("shader/shader.vert", NULL, "shader/shader.frag");
+	GLuint shader_program = load_program("../src/shader/shader.vert", NULL, "../src/shader/shader.frag");
 
 	float vertices[] = {
 		-0.5f, -0.5f, 0.0f, // left  
