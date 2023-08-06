@@ -10,4 +10,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "include/stb_image.h"
 
+#include <cglm/cglm.h>
+
 #endif
