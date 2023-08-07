@@ -2,6 +2,7 @@
 
 #include "shader.h"
 #include "camera.h"
+#include "model.h"
 
 #define SCREEN_WIDTH  1280
 #define SCREEN_HEIGHT 720
@@ -44,59 +45,59 @@ int main(void)
 
 	GLuint shader_program = load_program("../src/shader/shader.vert", NULL, "../src/shader/shader.frag");
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, // left  
-		0.5f, -0.5f, 0.0f, // right 
-		0.0f,  0.5f, 0.0f  // top   
-	}; 
+	Model *model = load_model("../assets/backpack/backpack.obj");
 
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	
+
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, model->meshes[0].vert_count * sizeof(float), model->meshes[0].vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-
 	glBindBuffer(GL_ARRAY_BUFFER, 0); 
 	glBindVertexArray(0);
 
 	init_camera(&camera);
-	
-
 	float current_frame = 0.f, last_frame = 0.f, delta_time = 0.0f;
+
+	glEnable(GL_DEPTH_TEST); 
 
 	while (!glfwWindowShouldClose(window)) {
 		current_frame = (float) (glfwGetTime());
 		delta_time = current_frame - last_frame;
 		last_frame = current_frame;
 		process_input(window, &camera, delta_time);
-		
+
 		glClearColor(0.1, 0.1, 0.1, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(shader_program);
 		GLint view_loc = glGetUniformLocation(shader_program, "view");
 		mat4 view;
 		get_view_matrix(&camera, view);
 		glUniformMatrix4fv(view_loc, 1, GL_FALSE, view[0]);
-		
+
+		GLint mod_loc = glGetUniformLocation(shader_program, "model");
+		mat4 mod;
+		glm_mat4_identity(mod);
+		glUniformMatrix4fv(mod_loc, 1, GL_FALSE, mod[0]);
+
 		GLint proj_loc = glGetUniformLocation(shader_program, "projection");
 		mat4 proj;
 		glm_perspective(0.78f, (float) SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.f, proj);
 		glUniformMatrix4fv(proj_loc, 1, GL_FALSE, proj[0]);
-		
 
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, model->meshes[0].vert_count);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	destroy_model(model);
 
 cleanup_window:
 	glfwDestroyWindow(window);
