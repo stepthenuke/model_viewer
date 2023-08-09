@@ -13,8 +13,10 @@ void mouse_callback(GLFWwindow *window, double x_in, double y_in);
 
 Camera camera;
 
-int main(void) 
+int main(int argc, char **argv)
 {
+	assert(argc == 2);
+
 	if (!glfwInit()) {
 		fprintf(stderr, "Failed to initialize glfw\n");
 		goto cleanup_glfw;	
@@ -45,25 +47,29 @@ int main(void)
 
 	GLuint shader_program = load_program("../src/shader/shader.vert", NULL, "../src/shader/shader.frag");
 
-	Model *model = load_model("../assets/backpack/backpack.obj");
+	// Model *model = read_model("../assets/cube/cube.obj");
+	// Model *model = read_model("../assets/backpack/backpack.obj");
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+	fastObjMesh *m = fast_obj_read(argv[1]);
+	fo_helper_print_mesh_info(m, 1);
 
-	glBindVertexArray(VAO);
+	for (int i = 0; i < m->face_count; i++) {
+		printf("FACES %d, ", m->face_vertices[i]);
+	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, model->meshes[0].vert_count * sizeof(float), model->meshes[0].vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0); 
-	glBindVertexArray(0);
+	fast_obj_destroy(m);
+
+	Model *model = read_model(argv[1]);
+
+	load_model_gl(model);
+	model_info(model, 1);
 
 	init_camera(&camera);
 	float current_frame = 0.f, last_frame = 0.f, delta_time = 0.0f;
 
-	glEnable(GL_DEPTH_TEST); 
+    glEnable(GL_DEPTH_TEST); 
+
+	glUseProgram(shader_program);
 
 	while (!glfwWindowShouldClose(window)) {
 		current_frame = (float) (glfwGetTime());
@@ -90,9 +96,8 @@ int main(void)
 		glm_perspective(0.78f, (float) SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.f, proj);
 		glUniformMatrix4fv(proj_loc, 1, GL_FALSE, proj[0]);
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, model->meshes[0].vert_count);
-
+		draw_model(model, shader_program);
+	
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -113,6 +118,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 void process_input(GLFWwindow *window, Camera *camera, float delta_time) {
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 		process_input_camera(camera, FORWARD, delta_time);
 	}

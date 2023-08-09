@@ -62,7 +62,7 @@ typedef struct
     float                       Ns;     /* Shininess */
     float                       Ni;     /* Index of refraction */
     float                       Tf[3];  /* Transmission filter */
-    float                       d;      /* Disolve (alpha) */
+    float                       d;      /* Dissolve (alpha) */
     int                         illum;  /* Illumination model */
 
     /* Texture maps */

@@ -4,3 +4,7 @@
 *.swp
 build/*
 !build/.gitkeep
+*test*.c
+*old.c
+*.dSYM
+assets*
