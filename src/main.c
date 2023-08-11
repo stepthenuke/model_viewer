@@ -4,11 +4,11 @@
 #include "camera.h"
 #include "model.h"
 
-#define SCREEN_WIDTH  1280
+#define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
 void process_input(GLFWwindow *window, Camera *camera, float delta_time);
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double x_in, double y_in);
 
 Camera camera;
@@ -17,9 +17,10 @@ int main(int argc, char **argv)
 {
 	assert(argc == 2);
 
-	if (!glfwInit()) {
+	if (!glfwInit())
+	{
 		fprintf(stderr, "Failed to initialize glfw\n");
-		goto cleanup_glfw;	
+		goto cleanup_glfw;
 	}
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -29,8 +30,9 @@ int main(int argc, char **argv)
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "MODEL VIEWER 2000", NULL, NULL);
-	if (window == NULL) {
+	GLFWwindow *window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "MODEL VIEWER 2000", NULL, NULL);
+	if (window == NULL)
+	{
 		fprintf(stderr, "Failed to create window\n");
 		goto cleanup_window;
 	}
@@ -40,24 +42,13 @@ int main(int argc, char **argv)
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
 		fprintf(stderr, "Failed to load GLAD\n");
 		goto cleanup_window;
 	}
 
 	GLuint shader_program = load_program("../src/shader/shader.vert", NULL, "../src/shader/shader.frag");
-
-	// Model *model = read_model("../assets/cube/cube.obj");
-	// Model *model = read_model("../assets/backpack/backpack.obj");
-
-	fastObjMesh *m = fast_obj_read(argv[1]);
-	fo_helper_print_mesh_info(m, 1);
-
-	for (int i = 0; i < m->face_count; i++) {
-		printf("FACES %d, ", m->face_vertices[i]);
-	}
-
-	fast_obj_destroy(m);
 
 	Model *model = read_model(argv[1]);
 
@@ -67,12 +58,13 @@ int main(int argc, char **argv)
 	init_camera(&camera);
 	float current_frame = 0.f, last_frame = 0.f, delta_time = 0.0f;
 
-    glEnable(GL_DEPTH_TEST); 
+	glEnable(GL_DEPTH_TEST);
 
 	glUseProgram(shader_program);
 
-	while (!glfwWindowShouldClose(window)) {
-		current_frame = (float) (glfwGetTime());
+	while (!glfwWindowShouldClose(window))
+	{
+		current_frame = (float)(glfwGetTime());
 		delta_time = current_frame - last_frame;
 		last_frame = current_frame;
 		process_input(window, &camera, delta_time);
@@ -93,11 +85,11 @@ int main(int argc, char **argv)
 
 		GLint proj_loc = glGetUniformLocation(shader_program, "projection");
 		mat4 proj;
-		glm_perspective(0.78f, (float) SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.f, proj);
+		glm_perspective(0.78f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.f, proj);
 		glUniformMatrix4fv(proj_loc, 1, GL_FALSE, proj[0]);
 
 		draw_model(model, shader_program);
-	
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -113,33 +105,42 @@ cleanup_glfw:
 	return 0;
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
 	glViewport(0, 0, width, height);
 }
 
-void process_input(GLFWwindow *window, Camera *camera, float delta_time) {
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+void process_input(GLFWwindow *window, Camera *camera, float delta_time)
+{
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	{
 		glfwSetWindowShouldClose(window, true);
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	{
 		process_input_camera(camera, FORWARD, delta_time);
 	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
 		process_input_camera(camera, BACKWARD, delta_time);
 	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	{
 		process_input_camera(camera, LEFT, delta_time);
 	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	{
 		process_input_camera(camera, RIGHT, delta_time);
 	}
 }
 
-void mouse_callback(GLFWwindow *window, double x_in, double y_in) {
-	float x_pos = (float) x_in;
-	float y_pos = (float) y_in;
-	if (camera.first_mouse) {
+void mouse_callback(GLFWwindow *window, double x_in, double y_in)
+{
+	float x_pos = (float)x_in;
+	float y_pos = (float)y_in;
+	if (camera.first_mouse)
+	{
 		camera.last_x = x_pos;
 		camera.last_y = y_pos;
 		camera.first_mouse = false;
@@ -150,4 +151,3 @@ void mouse_callback(GLFWwindow *window, double x_in, double y_in) {
 	camera.last_y = y_pos;
 	process_mouse_camera(&camera, x_offset, y_offset);
 }
-

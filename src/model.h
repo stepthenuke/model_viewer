@@ -22,16 +22,6 @@ unsigned int MALLOC_CHECK = 0;
 	MALLOC_CHECK--
 #endif
 
-// OK, step 1 is done. but now we need to do some optimizations and also understand how to load textures
-// As textures has one-to-many mapping to objects, we need to store some kind of id of a texture in model
-
-// Moreover we had stupid thing, we stored material in each Mesh however we only need to store an id of
-// material. -- SOLVED
-
-// Material holds textures in it. There is possible a situation when several materials holds the same texture.
-// So we need a map (hashmap) for a textures or smth like this. OR DON'T WE? As there not many textures
-// we can use simple O(n) search through array to find loaded textures
-
 typedef struct
 {
 	unsigned int texture_id;
@@ -117,14 +107,15 @@ void load_mesh_gl(Mesh *mesh)
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
 	glBufferData(GL_ARRAY_BUFFER, mesh->vert_count * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 	
-	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 	
-	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	
 	glBindVertexArray(0);
 }
 
@@ -199,7 +190,7 @@ void draw_model(Model *model, unsigned int shader_id)
 	glUseProgram(shader_id);
 	for (int i = 0; i < model->mesh_count; i++)
 	{
-		printf("MESH COUNT: %d\n", model->mesh_count);
+		// printf("MESH COUNT: %d\n", model->mesh_count);
 		draw_mesh(model, model->meshes + i, shader_id);
 	}
 }
@@ -208,7 +199,7 @@ void activate_texture(Texture *texture, unsigned int shader_id, const char *loc_
 {
 	if (texture->name == NULL) return;
 	int loc = glGetUniformLocation(shader_id, loc_name);
-	printf("%s   LOCATION: %d   SLOT: %d\n", loc_name, loc, *slot);
+	// printf("%s   LOCATION: %d   SLOT: %d\n", loc_name, loc, *slot);
 	glUniform1i(loc, *slot);
 	glActiveTexture(GL_TEXTURE0 + *slot);
 	glBindTexture(GL_TEXTURE_2D, texture->texture_id);
@@ -230,7 +221,7 @@ void draw_mesh(Model *model, Mesh *mesh, unsigned int shader_id)
 	activate_texture(&material->map_bump, shader_id, "texture_bump", &slot);
 	
 	glBindVertexArray(mesh->VAO);
-	glDrawArrays(GL_TRIANGLES, 0, mesh->vert_count);
+	glDrawArrays(GL_TRIANGLES, 0, mesh->vert_count / 8);
 	glBindVertexArray(0);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -341,8 +332,7 @@ void texture_from_fo_texture(Texture *texture, fastObjTexture *fo_texture)
 void make_material(Material *material, fastObjMesh *fo_mesh, unsigned int mat_num)
 {
 	fastObjMaterial *fo_mat = fo_mesh->materials + mat_num;
-	memcpy(material, fo_mat,
-		   offsetof(fastObjMaterial, map_Ka));
+	memcpy(material, fo_mat, offsetof(fastObjMaterial, map_Ka));
 	texture_from_fo_texture(&material->map_Kd, &fo_mat->map_Kd);
 	texture_from_fo_texture(&material->map_Ka, &fo_mat->map_Ka);
 	texture_from_fo_texture(&material->map_Ks, &fo_mat->map_Ks);
@@ -365,7 +355,7 @@ void make_mesh(Mesh *mesh, fastObjMesh *fo_mesh, unsigned int obj_num)
 	unsigned int face_end = face_start + cur_obj->face_count;
 	unsigned int first_face_material_ind = fo_mesh->face_materials[face_start];
 
-	mesh->vert_count = cur_obj->face_count * 8 * 3;
+	mesh->vert_count = cur_obj->face_count * 3 * 8;
 	mesh->name = strdup(cur_obj->name);
 
 	unsigned int vert_size = cur_obj->face_count * 3 * 8 * sizeof(float);
@@ -580,7 +570,6 @@ void fo_helper_print_group_info(fastObjGroup *group)
 
 void fo_helper_print_mesh_info(fastObjMesh *mesh, int verbose)
 {
-
 	printf("position_count: %d\n", mesh->position_count);
 	printf("texcoord_count: %d\n", mesh->texcoord_count);
 	printf("normal_count: %d\n", mesh->normal_count);
