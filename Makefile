@@ -2,8 +2,8 @@ CC=clang
 
 CFLAGS=-std=c11 -Wall -I./src/include -I./src/include/glad/include -I/opt/homebrew/include -L/opt/homebrew/lib -lglfw
 
-CFILES=src/main.c src/glad.c
-HFILES=src/common.h src/shader.h src/camera.h src/model.h
+CFILES=src/main.c src/shader.c src/camera.c src/model.c src/glad.c 
+HFILES= src/shader.h src/camera.h src/model.h
 
 build/main: $(CFILES) $(HFILES)
 	$(CC) $(CFLAGS) -O2 $(CFILES) -o build/main
