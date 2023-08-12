@@ -42,4 +42,4 @@ void process_input_camera(Camera *camera, Camera_movement direction, float delta
 void update_camera_state(Camera *camera);
 void process_mouse_camera(Camera *camera, float x_offset, float y_offset);
 
-#endif
+#endif // CAMERA_H

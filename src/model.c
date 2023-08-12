@@ -9,15 +9,18 @@ void load_mesh_gl(Mesh *mesh)
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
 	glBufferData(GL_ARRAY_BUFFER, mesh->vert_count * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 	
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
-	
+
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float)));
+	glEnableVertexAttribArray(3);
+
 	glBindVertexArray(0);
 }
 
@@ -121,10 +124,37 @@ void draw_mesh(Model *model, Mesh *mesh, unsigned int shader_id)
 	activate_texture(&material->map_bump, shader_id, "texture_bump", &slot);
 	
 	glBindVertexArray(mesh->VAO);
-	glDrawArrays(GL_TRIANGLES, 0, mesh->vert_count / 8);
+	glDrawArrays(GL_TRIANGLES, 0, mesh->vert_count / 11);
 	glBindVertexArray(0);
 
 	glActiveTexture(GL_TEXTURE0);
+
+	shader_set_material(shader_id, material);
+}
+
+void shader_set_material(unsigned int shader_id, Material *material) 
+{
+	GLint loc;
+	loc = glGetUniformLocation(shader_id, "material.ambient");
+	glUniform3fv(loc, 1, material->Ka);
+	loc = glGetUniformLocation(shader_id, "material.diffuse");
+	glUniform3fv(loc, 1, material->Kd);
+	loc = glGetUniformLocation(shader_id, "material.specular");
+	glUniform3fv(loc, 1, material->Ks);
+	loc = glGetUniformLocation(shader_id, "material.emission");
+	glUniform3fv(loc, 1, material->Ke);
+	loc = glGetUniformLocation(shader_id, "material.transmittance");
+	glUniform3fv(loc, 1, material->Kt);
+	loc = glGetUniformLocation(shader_id, "material.shininess");
+	glUniform1f(loc, material->Ns);
+	loc = glGetUniformLocation(shader_id, "material.refract_index");
+	glUniform1f(loc, material->Ni);
+	loc = glGetUniformLocation(shader_id, "material.trans_filter");
+	glUniform3fv(loc, 1, material->Tf);
+	loc = glGetUniformLocation(shader_id, "material.alpha");
+	glUniform1f(loc, material->d);
+	loc = glGetUniformLocation(shader_id, "material.illum");
+	glUniform1i(loc, material->illum);
 }
 
 void load_texture_if_not_loaded(Texture *texture)
@@ -168,6 +198,10 @@ void load_textures(Model *model)
 		load_texture_if_not_loaded(&material->map_Ni);
 		load_texture_if_not_loaded(&material->map_d);
 		load_texture_if_not_loaded(&material->map_bump);
+	}
+
+	for (int i = 0; i < loaded_textures_size; i++) {
+		printf("Texture: %s; location: %u\n", loaded_textures[i].name, loaded_textures[i].texture_id);
 	}
 
 	if (loaded_textures != NULL)
@@ -250,11 +284,11 @@ void make_mesh(Mesh *mesh, fastObjMesh *fo_mesh, unsigned int obj_num)
 	unsigned int face_end = face_start + cur_obj->face_count;
 	unsigned int first_face_material_ind = fo_mesh->face_materials[face_start];
 
-	mesh->vert_count = cur_obj->face_count * 3 * 8;
+	mesh->vert_count = cur_obj->face_count * 3 * 11;
 	mesh->name = strdup(cur_obj->name);
 
-	unsigned int vert_size = cur_obj->face_count * 3 * 8 * sizeof(float);
-	mesh->vertices = malloc(vert_size); // 8 is not magic as 3 (v: x, y, z) + 3 (vn) + 2 (t) for each face
+	unsigned int vert_size = cur_obj->face_count * 3 * 11 * sizeof(float);
+	mesh->vertices = malloc(vert_size); // 11 is not magic as 3 (v: x, y, z) + 3 (vn) + 2 (t) + 3 (tangent) for each face
 	assert(mesh->vertices != NULL);
 	float *cur_vert_pos = mesh->vertices;
 
@@ -277,9 +311,49 @@ void make_mesh(Mesh *mesh, fastObjMesh *fo_mesh, unsigned int obj_num)
 		}
 		indices_arr_index += face_size;
 	}
-	// so now vert is filled as [v1 vn1 vt1 v2 vn2 vt2 ...]
+	// so now vert is filled as [v1 vn1 vt1 vtan1 v2 vn2 vt2 vtan2 ...]
 	// think maybe of some material structure (now for every mesh we're making a copy of material struct -> that's stupid)
 	mesh->material_index = first_face_material_ind;
+
+	mesh_calculate_tangents(mesh);
+}
+
+void mesh_calculate_tangents(Mesh *mesh) 
+{
+	// we need to iterate through triples of vertices
+	// v1 vn1 vt1 vtan1 -> i
+	// v2 vn2 vt2 vtan2 -> i + 11      -> vert_count - 1 -- index of last element
+	// v3 vn3 vt3 vtan3 -> i + 2 * 11
+	// | 0 1 2 | 3 4 5 | 6 7 | 8 9 10 |
+
+	for (unsigned int i = 0; i < mesh->vert_count - 33; i += 33) 
+	{	
+		unsigned int offset1 = i, offset2 = i + 11, offset3 = i + 22;
+		vec3 edge1, edge2;
+		for (int j = 0; j < 3; j++) 
+		{
+			edge1[j] = mesh->vertices[offset2 + j] - mesh->vertices[offset1 + j];
+			edge2[j] = mesh->vertices[offset3 + j] - mesh->vertices[offset1 + j];
+		}
+
+		float delta_u1 = mesh->vertices[offset2 + 6] - mesh->vertices[offset1 + 6];
+		float delta_v1 = mesh->vertices[offset2 + 7] - mesh->vertices[offset1 + 7];
+		float delta_u2 = mesh->vertices[offset3 + 6] - mesh->vertices[offset1 + 6];
+		float delta_v2 = mesh->vertices[offset3 + 7] - mesh->vertices[offset1 + 7];
+
+		float f = 1.f / (delta_u1 * delta_u2 - delta_u2 * delta_v1);
+
+		vec3 tangent;
+		glm_vec3_scale(edge1, delta_v2, tangent);
+		glm_vec3_scale(edge2, delta_v1, edge1); // use edge1 as temp vec
+		glm_vec3_sub(tangent, edge1, tangent);
+		glm_vec3_scale(tangent, f, tangent);
+		glm_vec3_normalize(tangent);
+
+		memcpy(mesh->vertices + offset1 + 8, tangent, 3 * sizeof(float));
+		memcpy(mesh->vertices + offset2 + 8, tangent, 3 * sizeof(float));
+		memcpy(mesh->vertices + offset3 + 8, tangent, 3 * sizeof(float));
+	}
 }
 
 float *fill_vert_with_face(float *cur_vert_pos, fastObjMesh *fo_mesh, unsigned int ind_index)
@@ -291,7 +365,7 @@ float *fill_vert_with_face(float *cur_vert_pos, fastObjMesh *fo_mesh, unsigned i
 	memcpy(cur_vert_pos, &fo_mesh->positions[p], 3 * sizeof(float));
 	memcpy(cur_vert_pos + 3, &fo_mesh->normals[n], 3 * sizeof(float));
 	memcpy(cur_vert_pos + 6, &fo_mesh->texcoords[t], 2 * sizeof(float));
-	cur_vert_pos += 8;
+	cur_vert_pos += 11;
 
 	return cur_vert_pos;
 }

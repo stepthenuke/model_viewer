@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cglm/cglm.h>
 #include "include/glad/glad.h"
 #include <GLFW/glfw3.h>
 #include "include/stb_image.h"
@@ -85,6 +86,7 @@ void texture_from_fo_texture(Texture *texture, fastObjTexture *fo_texture);
 void make_material(Material *material, fastObjMesh *fo_mesh, unsigned int mat_num);
 void make_mesh(Mesh *mesh, fastObjMesh *fo_mesh, unsigned int obj_num);
 float *fill_vert_with_face(float *cur_vert_pos, fastObjMesh *fo_mesh, unsigned int ind_index);
+void mesh_calculate_tangents(Mesh *mesh); 
 void destroy_texture(Texture *texture);
 void destroy_model(Model *model);
 void destroy_mesh(Mesh *mesh);
@@ -98,6 +100,7 @@ unsigned int load_texture_gl(const char *path);
 void loaded_texture_size_increase();
 void draw_model(Model *model, unsigned int shader_id);
 void draw_mesh(Model *model, Mesh *mesh, unsigned int shader_id);
+void shader_set_material(unsigned int shader_id, Material *material);
 void load_mesh_gl(Mesh *mesh);
 void load_model_gl(Model *model);
 
@@ -109,4 +112,4 @@ void mesh_info(Mesh *mesh);
 void material_info(Material *material);
 void model_info(Model *model, int verbose);
 
-#endif
+#endif // MODEL_H
